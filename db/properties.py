@@ -18,7 +18,6 @@ class DictProperty(db.StringListProperty):
       value_type: the class that all values should be an instance of. Values
       will be passed in to the constructor of this class.
     '''
-
     db.StringListProperty.__init__(self, **kwds)
     if value_type:
       self.data_value_type = value_type
@@ -27,8 +26,8 @@ class DictProperty(db.StringListProperty):
     ''' Returns the pickled value for the datastore. '''
     value = super(DictProperty, self).get_value_for_datastore(model_instance)
     return db.Blob(pickle.dumps(value))
-    #TODO(jbenet) reconsider not pickling for base types
-    # this would make these values editable via datastore viewer.
+    #TODO(jbenet) reconsider not pickling for base types.
+    # This would make the dictionaries editable via datastore viewer.
 
   def make_value_from_datastore(self, value):
     ''' Returns the unpickled value from the datastore. '''
@@ -50,8 +49,8 @@ class DictProperty(db.StringListProperty):
       value: the input value to check.
 
     Returns:
-      value, if it is valid. Otherwise, a BadValueError is raised.'''
-
+      value, if it is valid. Otherwise, a BadValueError is raised.
+    '''
     if not isinstance(value, dict):
       raise db.BadValueError('Property %s needs to be convertible '
                   'to a dict instance (%s) of class dict' % (self.name, value))
