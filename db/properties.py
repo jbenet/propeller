@@ -40,7 +40,7 @@ class DictProperty(db.StringListProperty):
     if self.default is None:
       return dict()
     else:
-      return super(DictProperty, self).default_value().copy()
+      return dict(super(DictProperty, self).default_value())
 
   def validate(self, value):
     ''' Checks whether value is a valid value for this property.
@@ -58,7 +58,7 @@ class DictProperty(db.StringListProperty):
     for key in value:
       if not isinstance(value[key], self.data_value_type):
         raise db.BadValueError('Value for key %s of property %s needs to be '
-                'an instance of class %s', key, self.name, self.data_value_type)
+            'an instance of class %s' % (key, self.name, self.data_value_type))
 
     return value
 
