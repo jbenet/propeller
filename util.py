@@ -3,6 +3,9 @@ import datetime
 
 ISO_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S"
 
+def strftime(datetime):
+  return datetime.datetime.strftime(val, ISO_DATE_FORMAT)
+
 def strptime(val):
   if '.' not in val:
     return datetime.datetime.strptime(val, ISO_DATE_FORMAT)
