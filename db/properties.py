@@ -42,6 +42,7 @@ class DictProperty(db.StringListProperty):
     else:
       return dict(super(DictProperty, self).default_value())
 
+  KEY_ERR_FMT = 'Value for %s[\'%s\'] must be of type %s. It is of type %s'
   def validate(self, value):
     ''' Checks whether value is a valid value for this property.
 
@@ -57,8 +58,11 @@ class DictProperty(db.StringListProperty):
 
     for key in value:
       if not isinstance(value[key], self.data_value_type):
-        raise db.BadValueError('Value for key %s of property %s needs to be '
-            'an instance of class %s' % (key, self.name, self.data_value_type))
+        try:
+          value[key] = self.data_value_type(value[key])
+        except Exception, e:
+          raise db.BadValueError(self.KEY_ERR_FMT % \
+            (self.name, key, self.data_value_type, type(value[key])))
 
     return value
 
