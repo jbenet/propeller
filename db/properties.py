@@ -1,6 +1,7 @@
 
 from google.appengine.ext import db
 import pickle
+from django.utils import simplejson as json
 
 class DictProperty(db.StringListProperty):
   '''Support for creating Dictionary Properties in Google's App Engine.
@@ -10,6 +11,16 @@ class DictProperty(db.StringListProperty):
   '''
   data_type = dict
   data_value_type = str
+
+  def _construct_value_type(self, string):
+    if self.data_value_type == dict or self.data_value_type == list:
+      try:
+        value = json.loads(string)
+        return value
+      except Exception, e:
+        pass
+    value = self.data_value_type(string)
+    return value
 
   def __init__(self, value_type=None, **kwds):
     ''' Constructs this property.
@@ -26,8 +37,9 @@ class DictProperty(db.StringListProperty):
     ''' Returns the pickled value for the datastore. '''
     value = super(DictProperty, self).get_value_for_datastore(model_instance)
     return db.Blob(pickle.dumps(value))
-    #TODO(jbenet) reconsider not pickling for base types.
+    # TODO(jbenet) reconsider not pickling for base types.
     # This would make the dictionaries editable via datastore viewer.
+    # use json instead??
 
   def make_value_from_datastore(self, value):
     ''' Returns the unpickled value from the datastore. '''
@@ -42,7 +54,7 @@ class DictProperty(db.StringListProperty):
     else:
       return dict(super(DictProperty, self).default_value())
 
-  KEY_ERR_FMT = 'Value for %s[\'%s\'] must be of type %s. It is of type %s'
+  KEY_ERR_FMT = '%s for %s[\'%s\'] must be of type %s. It is of type %s'
   def validate(self, value):
     ''' Checks whether value is a valid value for this property.
 
@@ -56,13 +68,25 @@ class DictProperty(db.StringListProperty):
       raise db.BadValueError('Property %s needs to be convertible '
                   'to a dict instance (%s) of class dict' % (self.name, value))
 
-    for key in value:
-      if not isinstance(value[key], self.data_value_type):
+    keys = value.keys()
+    for key in keys:
+      if not isinstance(key, str):
         try:
-          value[key] = self.data_value_type(value[key])
+          temp = value[key]
+          del value[key]
+          key = str(key)
+          value[key] = temp
+
         except Exception, e:
           raise db.BadValueError(self.KEY_ERR_FMT % \
-            (self.name, key, self.data_value_type, type(value[key])))
+            ('Key', self.name, key, str, type(value[key])))
+
+      if not isinstance(value[key], self.data_value_type):
+        try:
+          value[key] = self._construct_value_type(value[key])
+        except Exception, e:
+          raise db.BadValueError(self.KEY_ERR_FMT % \
+            ('Value', self.name, key, self.data_value_type, type(value[key])))
 
     return value
 
@@ -84,8 +108,11 @@ class DictProperty(db.StringListProperty):
     if not value:
       pass
     elif isinstance(value, dict):
-      value = map(lambda k: "%s,%s" % (k, str(value[k])), value)
-      value = '\n'.join(value)
+      if self.data_value_type == dict or self.data_value_type == list:
+        fn = lambda k: "%s,%s" % (k, json.dumps(value[k]))
+      else:
+        fn = lambda k: "%s,%s" % (k, self.data_value_type(value[k]))
+      value = '\n'.join(map(fn, value))
     return value
 
   def make_value_from_form(self, form_input):
@@ -106,7 +133,7 @@ class DictProperty(db.StringListProperty):
       lines = form_input.splitlines()
       form_input = {}
       for line in lines:
-        line = line.split(',')
-        result[line[0]] = self.data_value_type(line[1])
+        line = line.split(',', 1)
+        result[line[0]] = self._construct_value_type(line[1])
     return result
 

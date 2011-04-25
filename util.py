@@ -3,7 +3,7 @@ import datetime
 
 ISO_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S"
 
-def strftime(datetime):
+def strftime(val):
   return datetime.datetime.strftime(val, ISO_DATE_FORMAT)
 
 def strptime(val):
@@ -30,6 +30,9 @@ def PKCS7_unpad(string):
   '''Returns a PKCS7-style unpadded string. See RFC 2315.
   The value of padding bytes removed must equal the number of padding bytes.
   '''
+  if len(string) == 0:
+    return string
+
   bytes_to_consider = ord(string[-1])
   for byte in string[-bytes_to_consider:]:
     if ord(byte) != bytes_to_consider:
